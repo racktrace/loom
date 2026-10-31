@@ -1,0 +1,24 @@
+# Binary hasil build (pakai / supaya hanya file di root yang diabaikan,
+# bukan folder lain yang kebetulan bernama loom)
+/loom
+/dist/
+
+# Output test & coverage
+*.test
+*.out
+coverage.*
+
+# Go workspace lokal
+go.work
+go.work.sum
+
+# Environment & rahasia
+.env
+.env.*
+
+# Editor & OS
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
