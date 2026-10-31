@@ -1,62 +1,45 @@
 package cmd
 
 import (
-	"io"
 	"os"
-	"os/exec"
-	"strings"
+	"time"
 
-	"github.com/racktrace/loom/internal/scratch"
+	"github.com/racktrace/loom/internal/config"
+	"github.com/racktrace/loom/internal/editor"
+	"github.com/racktrace/loom/internal/store"
 	"github.com/spf13/cobra"
 )
 
 var rootCmd = &cobra.Command{
 	Use:          "loom",
-	Short:        "scratch-first note taking, fast",
+	Short:        "Scratch-first note taking for the terminal",
 	Args:         cobra.NoArgs,
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if stdinIsPipe() {
-			data, err := io.ReadAll(os.Stdin)
-			if err != nil {
-				return err
-			}
-			return scratch.AppendBlock(string(data))
+		cfg, err := config.Load()
+		if err != nil {
+			return err
 		}
-		return openEditor()
+		s := store.New(cfg.DataDir)
+
+		header, err := s.BeginScratchSession(cfg.Scratch.DateFormat, time.Now())
+		if err != nil {
+			return err
+		}
+
+		editErr := editor.Open(cfg.EditorCommand(), s.ScratchPath())
+
+		// Always clean up an empty header, even if the editor failed.
+		if err := s.EndScratchSession(header); err != nil {
+			return err
+		}
+		return editErr
 	},
 }
 
+// Execute runs the root command and exits with status 1 on error.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
-}
-
-func stdinIsPipe() bool {
-	fi, err := os.Stdin.Stat()
-	if err != nil {
-		return false
-	}
-	return fi.Mode()&os.ModeCharDevice == 0
-}
-
-func openEditor() error {
-	p, err := scratch.Path()
-	if err != nil {
-		return err
-	}
-	// pastikan file ada supaya editor tidak membuka buffer kosong tanpa nama
-	if f, err := os.OpenFile(p, os.O_CREATE, 0o600); err == nil {
-		f.Close()
-	}
-
-	// $EDITOR bisa berisi argumen, misalnya "code -w", jadi dipecah dulu
-	parts := strings.Fields(os.Getenv("EDITOR"))
-	if len(parts) == 0 {
-		parts = []string{"vi"}
-	}
-	c := exec.Command(parts[0], append(parts[1:], p)...)
-	c.Stdin, c.Stdout, c.Stderr = os.Stdin, os.Stdout, os.Stderr
-	return c.Run()
 }
