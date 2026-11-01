@@ -290,3 +290,59 @@ func searchFile(path, source, lowerQuery string) ([]Match, error) {
 	}
 	return matches, sc.Err()
 }
+
+// AppendToScratch adds a new session to the scratch without opening an editor.
+// The optional message goes above the body, and the body is wrapped in a
+// code fence so terminal output is never interpreted as Markdown.
+func (s *Store) AppendToScratch(dateFormat string, now time.Time, message, body string) error {
+	if err := s.Init(); err != nil {
+		return err
+	}
+
+	f, err := os.OpenFile(s.ScratchPath(), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	info, err := f.Stat()
+	if err != nil {
+		return err
+	}
+
+	var b strings.Builder
+	if info.Size() == 0 {
+		b.WriteString("# Scratch\n")
+	}
+	b.WriteString("\n## " + FormatDate(dateFormat, now) + "\n\n")
+	if m := strings.TrimSpace(message); m != "" {
+		b.WriteString(m + "\n\n")
+	}
+	fence := codeFence(body)
+	b.WriteString(fence + "\n" + strings.TrimRight(body, "\n") + "\n" + fence + "\n")
+
+	if _, err := f.WriteString(b.String()); err != nil {
+		return err
+	}
+	return f.Close()
+}
+
+// codeFence returns a fence longer than any run of backticks in body,
+// so output that itself contains ``` cannot break the block.
+func codeFence(body string) string {
+	longest, run := 0, 0
+	for _, r := range body {
+		if r == '`' {
+			run++
+			if run > longest {
+				longest = run
+			}
+		} else {
+			run = 0
+		}
+	}
+	if longest < 3 {
+		return "```"
+	}
+	return strings.Repeat("`", longest+1)
+}

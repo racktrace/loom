@@ -41,6 +41,7 @@ loom show             list all notes
 loom show <name>      print a note
 loom show scratch     print the scratch
 loom config           show the active configuration
+loom search "<query>"  search the scratch and all notes (case-insensitive)
 ```
 
 ### Scratch
@@ -120,6 +121,6 @@ LOOM_DIR=/tmp/loom-test loom
 
 ## Roadmap
 
-- [ ] Search across scratch and notes
+- [v] Search across scratch and notes
 - [ ] Backup
 - [ ] Makefile and release binaries
