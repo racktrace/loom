@@ -10,9 +10,10 @@ import (
 )
 
 var editCmd = &cobra.Command{
-	Use:   "edit <name>",
-	Short: "Open an existing note in the editor",
-	Args:  cobra.ExactArgs(1),
+	Use:               "edit <name>",
+	Short:             "Open an existing note in the editor",
+	Args:              cobra.ExactArgs(1),
+	ValidArgsFunction: completeNoteNames(false),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]
 

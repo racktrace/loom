@@ -13,9 +13,10 @@ import (
 )
 
 var addCmd = &cobra.Command{
-	Use:   "add <name>",
-	Short: "Create a new note and open it in the editor",
-	Args:  cobra.ExactArgs(1),
+	Use:               "add <name>",
+	Short:             "Create a new note and open it in the editor",
+	Args:              cobra.ExactArgs(1),
+	ValidArgsFunction: cobra.NoFileCompletions,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]
 

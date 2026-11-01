@@ -42,6 +42,8 @@ loom show <name>      print a note
 loom show scratch     print the scratch
 loom config           show the active configuration
 loom search "<query>"  search the scratch and all notes (case-insensitive)
+cmd | loom            append command output to the scratch
+cmd | loom -m "msg"   same, with a short description
 ```
 
 ### Scratch

@@ -12,9 +12,10 @@ import (
 )
 
 var searchCmd = &cobra.Command{
-	Use:   `search "<query>"`,
-	Short: "Search the scratch and all notes (case-insensitive)",
-	Args:  cobra.ExactArgs(1),
+	Use:               `search "<query>"`,
+	Short:             "Search the scratch and all notes (case-insensitive)",
+	Args:              cobra.ExactArgs(1),
+	ValidArgsFunction: cobra.NoFileCompletions,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		query := args[0]
 		if strings.TrimSpace(query) == "" {

@@ -13,9 +13,10 @@ import (
 )
 
 var showCmd = &cobra.Command{
-	Use:   "show [name|scratch]",
-	Short: "List notes, or print a note or the scratch",
-	Args:  cobra.MaximumNArgs(1),
+	Use:               "show [name|scratch]",
+	Short:             "List notes, or print a note or the scratch",
+	Args:              cobra.MaximumNArgs(1),
+	ValidArgsFunction: completeNoteNames(true),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg, err := config.Load()
 		if err != nil {
