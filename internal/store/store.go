@@ -112,8 +112,11 @@ func (s *Store) BeginScratchSession(dateFormat string, now time.Time) (string, e
 }
 
 // EndScratchSession removes the session header if nothing was written under it.
+// The header is always at the end of the file, so the file is truncated
+// instead of rewritten: earlier content is never touched.
 func (s *Store) EndScratchSession(header string) error {
-	b, err := os.ReadFile(s.ScratchPath())
+	p := s.ScratchPath()
+	b, err := os.ReadFile(p)
 	if err != nil {
 		return err
 	}
@@ -121,8 +124,20 @@ func (s *Store) EndScratchSession(header string) error {
 	if !strings.HasSuffix(content, header) {
 		return nil // something was written after the header: keep it
 	}
-	trimmed := strings.TrimRight(strings.TrimSuffix(content, header), " \t\n")
-	return os.WriteFile(s.ScratchPath(), []byte(trimmed+"\n"), 0o600)
+	keep := strings.TrimRight(strings.TrimSuffix(content, header), " \t\n")
+
+	if err := os.Truncate(p, int64(len(keep))); err != nil {
+		return err
+	}
+	f, err := os.OpenFile(p, os.O_APPEND|os.O_WRONLY, 0o600)
+	if err != nil {
+		return err
+	}
+	if _, err := f.WriteString("\n"); err != nil {
+		f.Close()
+		return err
+	}
+	return f.Close()
 }
 
 // FormatDate formats t using strftime-style directives such as %Y-%m-%d %H:%M.
