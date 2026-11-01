@@ -1,6 +1,7 @@
 package store
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -234,4 +235,58 @@ func (s *Store) ListNotes() ([]string, error) {
 		names = append(names, strings.TrimSuffix(e.Name(), ".md"))
 	}
 	return names, nil
+}
+
+// Match is a single line that matched a search query.
+type Match struct {
+	Source string // "scratch" or the note name
+	Line   int    // 1-based line number
+	Text   string
+}
+
+// Search looks for query in the scratch and every note, case-insensitively.
+// Results come in order: scratch first, then notes alphabetically.
+func (s *Store) Search(query string) ([]Match, error) {
+	q := strings.ToLower(query)
+	var matches []Match
+
+	found, err := searchFile(s.ScratchPath(), ScratchName, q)
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return nil, err
+	}
+	matches = append(matches, found...)
+
+	names, err := s.ListNotes()
+	if err != nil {
+		return nil, err
+	}
+	for _, name := range names {
+		found, err := searchFile(filepath.Join(s.NotesDir(), name+".md"), name, q)
+		if err != nil {
+			return nil, err
+		}
+		matches = append(matches, found...)
+	}
+	return matches, nil
+}
+
+// searchFile scans one file line by line, so large files stay cheap.
+func searchFile(path, source, lowerQuery string) ([]Match, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	var matches []Match
+	sc := bufio.NewScanner(f)
+	sc.Buffer(make([]byte, 0, 64*1024), 1024*1024) // allow lines up to 1 MiB
+
+	for n := 1; sc.Scan(); n++ {
+		line := sc.Text()
+		if strings.Contains(strings.ToLower(line), lowerQuery) {
+			matches = append(matches, Match{Source: source, Line: n, Text: line})
+		}
+	}
+	return matches, sc.Err()
 }
